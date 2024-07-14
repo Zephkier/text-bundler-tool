@@ -1,35 +1,38 @@
 input_directory="./input"
 output_directory="$PWD"
-output_file="$output_directory/output by .sh file.txt"
+output_file="$output_directory/output_by_sh_file.txt"
 
-# Check if there are any files in input_directory
-if [ -z "$(find "$input_directory" -maxdepth 1 -type f -print -quit)" ]; then
+# Check if the input directory is empty
+if [ -z "$(ls -A "$input_directory")" ]; then
     echo "Error: No files found in the input directory."
-    rm -f "$output_file"
+    [ -f "$output_file" ] && rm "$output_file"
     exit 1
 fi
 
-# Remove existing output file
-rm -f "$output_file"
+# Remove the output file if it exists
+[ -f "$output_file" ] && rm "$output_file"
 
-# Flag to track whether it's the first file
 first_file=true
 
-# Loop through each file in input_directory
-for file in "$input_directory"/*; do
-    # Get file name without path
-    filename=$(basename "$file")
-    
-    # Add heading with file name
-    if [ "$first_file" = true ]; then
-      echo -e "combined by .sh file :)\n\n\n-------------------- $filename --------------------" >> "$output_file"
-      first_file=false
-    else
-      echo -e "\n\n\n-------------------- $filename --------------------" >> "$output_file"
-    fi
-    
-    # Concatenate the content of the file
-    cat "$file" >> "$output_file"
-done
+process_files_in_directory() {
+    local directory=$1
+
+    find "$directory" -type f | while read -r file_path; do
+        relative_path=$(realpath --relative-to="$input_directory" "$file_path")
+
+        # Add heading with file name
+        if $first_file; then
+            echo -e "combined by .sh file :)\n\n\n----- ----- $relative_path ----- -----" >> "$output_file"
+            first_file=false
+        else
+            echo -e "\n\n----- ----- $relative_path ----- -----" >> "$output_file"
+        fi
+
+        # Concatenate the content of the file
+        cat "$file_path" >> "$output_file"
+    done
+}
+
+process_files_in_directory "$input_directory"
 
 echo "Combined files saved to $output_file"
